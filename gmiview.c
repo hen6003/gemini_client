@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-void printgemtext(FILE *fp)
+
+
+void printgemtext(FILE *fp, int *linkc, char linkv[100][100])
 {
   char c; // character to check/print
   char t; // tmp character
@@ -11,39 +13,62 @@ void printgemtext(FILE *fp)
   int preformatted = 0;
   int hideln = 0;
   int listi = 0; // used for numbers on lists
-  int linkc = 0; // number of links
-  // char linkv[100][100]; // array of links
+
+  *linkc = 0; // number of links
 
   while ((c = getc(fp)) != EOF)
   {
-    if (c == '#' && firstchar && !preformatted) // checks for header
+    if (!preformatted)
     {
-      t = getc(fp); // reads next char
-      if (t == '#') // checks if sub-header
+      if (c == '#' && firstchar) // checks for header
       {
         t = getc(fp); // reads next char
-        if (t == '#') // checks if sub-sub-header
-          printf("\033[33m##");     // goes yellow if sub-sub-header
+        if (t == '#') // checks if sub-header
+        { 
+          t = getc(fp); // reads next char
+          if (t == '#') // checks if sub-sub-header
+            printf("\033[33m##");     // goes yellow if sub-sub-header
+          else
+            printf("\033[34m#%c", c); // goes blue if sub-header
+        }
         else
-          printf("\033[34m#%c", c); // goes blue if sub-header
+          printf("\033[35m%c", c);    // goes purple if header
+
+        c = t; // sets the next character to be printed to t(mp) so that the file is continued
       }
-      else
-        printf("\033[35m%c", c);    // goes purple if header
+  
+      if (c == '*' && firstchar)
+      {
+        ++listi;
 
-      c = t; // sets the next character to be printed to t(mp) so that the file is continued
+        sprintf(listbuf, "%i", listi);
+        printf("%s", listbuf);
+
+        c = 0x0;
+      }
+      else if (firstchar)
+        listi = 0;
+
+      if (c == '=' && firstchar) // checks for start of link
+      {
+        t = getc(fp); // reads next char
+        if (t == '>') // checks for end of link
+        {
+          printf("\033[31m[%i]", *linkc); // if link then index it
+          
+          while ((c = getc(fp)) == ' ')
+
+          while ((c = getc(fp)) != ' ')
+            sprintf(linkv[*linkc], "%s%c", linkv[*linkc], c); 
+          
+          ++*linkc;
+          printf(" ");
+        }
+      }
+
+      if (c == '>' && firstchar)
+        printf("\033[32m"); // goes green if quote
     }
-
-    if (c == '*' && firstchar && !preformatted)
-    {
-      ++listi;
-
-      sprintf(listbuf, "%i", listi);
-      printf("%s", listbuf);
-
-      c = 0x0;
-    }
-    else if (firstchar)
-      listi = 0;
 
     if (c == '`' && firstchar)
       if (getc(fp) == '`')
@@ -56,21 +81,6 @@ void printgemtext(FILE *fp)
           else 
             preformatted = 1;
         }
-
-    if (c == '=' && firstchar && !preformatted) // checks for start of link
-    {
-      t = getc(fp); // reads next char
-      if (t == '>') // checks for end of link
-      {
-        printf("\033[31m[%i]", linkc); // if link then index it
-        ++linkc;
-
-        c = 0x0;
-      }
-    }
-
-    if (c == '>' && firstchar && !preformatted)
-      printf("\033[32m"); // goes green if quote
 
     firstchar = 0;
 
@@ -85,7 +95,7 @@ void printgemtext(FILE *fp)
       }
 
       printf("\033[0m"); // clears colour if newline
-    }
+    } 
     
     if (!hideln)
       printf("%c", c);
@@ -105,6 +115,8 @@ int main(int argc, char ** argv)
 {
   char url[100];
   FILE *fp = NULL;
+  int linkc;
+  char linkv[100][100];
   
   if (argc < 2)
     return 1;
@@ -113,7 +125,12 @@ int main(int argc, char ** argv)
 
   fp = openurl(url);
 
-  printgemtext(fp);
+  printgemtext(fp, &linkc, linkv);
+
+  printf("%i\n", linkc);
+
+  for (int i = 0; i < linkc; i++)
+    printf("%s\n", linkv[i]);
 
   fclose(fp);
 }
