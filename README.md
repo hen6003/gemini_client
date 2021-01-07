@@ -1,2 +1,2 @@
 # gemini_client
-a work in progress gemini client, for me to learn internet stuff
+a gemini parser for use with electrickite/gemini
