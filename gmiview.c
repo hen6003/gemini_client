@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
-void printgemtext(FILE *fp, int *linkc, char linkv[100][100])
+void printgemtext(FILE *fp)
 {
   char c; // character to check/print
   char t; // tmp character
@@ -13,8 +11,7 @@ void printgemtext(FILE *fp, int *linkc, char linkv[100][100])
   int preformatted = 0;
   int hideln = 0;
   int listi = 0; // used for numbers on lists
-
-  *linkc = 0; // number of links
+  int linki = 0; // used for number on links
 
   while ((c = getc(fp)) != EOF)
   {
@@ -42,7 +39,7 @@ void printgemtext(FILE *fp, int *linkc, char linkv[100][100])
         ++listi;
 
         sprintf(listbuf, "%i", listi);
-        printf("%s", listbuf);
+        printf("\033[37m%s\033[0m", listbuf);
 
         c = 0x0;
       }
@@ -54,14 +51,13 @@ void printgemtext(FILE *fp, int *linkc, char linkv[100][100])
         t = getc(fp); // reads next char
         if (t == '>') // checks for end of link
         {
-          printf("\033[31m[%i]", *linkc); // if link then index it
+          printf("\033[31m[%i]", linki); // if link then index it
           
           while ((c = getc(fp)) == ' ')
-
           while ((c = getc(fp)) != ' ')
-            sprintf(linkv[*linkc], "%s%c", linkv[*linkc], c); 
-          
-          ++*linkc;
+            ;
+
+          ++linki; 
           printf(" ");
         }
       }
@@ -115,22 +111,16 @@ int main(int argc, char ** argv)
 {
   char url[100];
   FILE *fp = NULL;
-  int linkc;
-  char linkv[100][100];
   
   if (argc < 2)
-    return 1;
+    fp = stdin;
+  else
+  {
+    strcpy(url, argv[1]);
+    fp = openurl(url);
+  }
 
-  strcpy(url, argv[1]);
-
-  fp = openurl(url);
-
-  printgemtext(fp, &linkc, linkv);
-
-  printf("%i\n", linkc);
-
-  for (int i = 0; i < linkc; i++)
-    printf("%s\n", linkv[i]);
+  printgemtext(fp);
 
   fclose(fp);
 }
